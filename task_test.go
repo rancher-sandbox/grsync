@@ -1,7 +1,6 @@
 package grsync
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -82,14 +81,35 @@ func TestRunTaskSuccessProgress(t *testing.T) {
 	createdTask := NewTask(a, b, RsyncOptions{})
 	go func() {
 		for {
-			state := createdTask.State()
-			fmt.Printf(
-				"progress: %.2f / rem. %d / tot. %d / sp. %s \n",
-				state.Progress,
-				state.Remain,
-				state.Total,
-				state.Speed,
-			)
+			_ = createdTask.State()
+			<-time.After(time.Millisecond)
+		}
+	}()
+
+	e = createdTask.Run()
+	assert.Nil(t, e)
+	_, e = os.Stat(b)
+	assert.Nil(t, e)
+}
+
+func TestRunTaskSuccessLog(t *testing.T) {
+	tmpDir := os.TempDir()
+	if tmpDir == "" {
+		tmpDir = "/tmp"
+	}
+	tmpDir = filepath.Join(tmpDir, "grsynctest")
+	e := os.MkdirAll(tmpDir, os.ModeDir|os.ModePerm)
+	assert.Nil(t, e)
+	defer os.RemoveAll(tmpDir)
+	a := filepath.Join(tmpDir, "a")
+	b := filepath.Join(tmpDir, "destDir")
+	f, e := os.Create(a)
+	assert.Nil(t, e)
+	f.Truncate(16 * 1024 * 1024)
+	createdTask := NewTask(a, b, RsyncOptions{})
+	go func() {
+		for {
+			_ = createdTask.Log()
 			<-time.After(time.Millisecond)
 		}
 	}()
