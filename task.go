@@ -42,11 +42,14 @@ func (t *Task) State() State {
 }
 
 // Log return structure which contains raw stderr and stdout outputs
-func (t Task) Log() Log {
-	return Log{
+func (t *Task) Log() Log {
+	t.mutex.Lock()
+	l := Log{
 		Stderr: t.log.Stderr,
 		Stdout: t.log.Stdout,
 	}
+	t.mutex.Unlock()
+	return l
 }
 
 // Run starts rsync process with options
