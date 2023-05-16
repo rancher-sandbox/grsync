@@ -1,4 +1,4 @@
-module github.com/zloylos/grsync
+module github.com/rancher-sandbox/grsync
 
 go 1.17
 
