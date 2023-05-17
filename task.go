@@ -15,7 +15,6 @@ type Task struct {
 
 	state *State
 	log   *Log
-	mutex sync.Mutex
 }
 
 // State contains information about rsync process
@@ -35,20 +34,16 @@ type Log struct {
 // State returns information about rsync processing task
 // lock mutex to avoid accessing it while ProcessStdout is writing to it
 func (t *Task) State() State {
-	t.mutex.Lock()
 	c := *t.state
-	t.mutex.Unlock()
 	return c
 }
 
 // Log return structure which contains raw stderr and stdout outputs
 func (t *Task) Log() Log {
-	t.mutex.Lock()
 	l := Log{
 		Stderr: t.log.Stderr,
 		Stdout: t.log.Stdout,
 	}
-	t.mutex.Unlock()
 	return l
 }
 
@@ -111,7 +106,6 @@ func processStdout(wg *sync.WaitGroup, task *Task, stdout io.Reader) {
 	//         999,999 99%  999.99kB/s    0:00:59 (xfr#9, to-chk=999/9999)
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
-		task.mutex.Lock()
 		logStr := scanner.Text()
 		if progressMatcher.Match(logStr) {
 			task.state.Remain, task.state.Total = getTaskProgress(progressMatcher.Extract(logStr))
@@ -125,7 +119,6 @@ func processStdout(wg *sync.WaitGroup, task *Task, stdout io.Reader) {
 		}
 
 		task.log.Stdout += logStr + "\n"
-		task.mutex.Unlock()
 	}
 }
 
@@ -134,9 +127,7 @@ func processStderr(wg *sync.WaitGroup, task *Task, stderr io.Reader) {
 
 	scanner := bufio.NewScanner(stderr)
 	for scanner.Scan() {
-		task.mutex.Lock()
 		task.log.Stderr += scanner.Text() + "\n"
-		task.mutex.Unlock()
 	}
 }
 
