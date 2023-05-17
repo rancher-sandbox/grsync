@@ -65,10 +65,10 @@ func (t *Task) Run() error {
 		return err
 	}
 
-	var wg sync.WaitGroup
-	go processStdout(&wg, t, stdout)
-	go processStderr(&wg, t, stderr)
+	wg := new(sync.WaitGroup)
 	wg.Add(2)
+	go processStdout(wg, t, stdout)
+	go processStderr(wg, t, stderr)
 
 	if err = t.rsync.Start(); err != nil {
 		// Close pipes to unblock goroutines
@@ -111,8 +111,8 @@ func processStdout(wg *sync.WaitGroup, task *Task, stdout io.Reader) {
 	//         999,999 99%  999.99kB/s    0:00:59 (xfr#9, to-chk=999/9999)
 	scanner := bufio.NewScanner(stdout)
 	for scanner.Scan() {
-		logStr := scanner.Text()
 		task.mutex.Lock()
+		logStr := scanner.Text()
 		if progressMatcher.Match(logStr) {
 			task.state.Remain, task.state.Total = getTaskProgress(progressMatcher.Extract(logStr))
 
